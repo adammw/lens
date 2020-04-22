@@ -4,7 +4,7 @@ const options = {
   colorize: true,
   handleExceptions: false,
   json: false,
-  level: process.env.DEBUG === "true" ? "debug" : "info",
+  level: true ? "debug" : "info",
 }
 
 const logger = winston.createLogger({

@@ -6,6 +6,7 @@ import * as url from "url"
 import logger from "./logger"
 import { getFreePort } from "./port"
 import { KubeAuthProxy } from "./kube-auth-proxy"
+import { PrometheusService } from "./prometheus-service"
 import { Cluster, ClusterPreferences } from "./cluster"
 
 export class ContextHandler {
@@ -21,13 +22,16 @@ export class ContextHandler {
   protected proxyTarget: ServerOptions
   protected clusterUrl: url.UrlWithStringQuery
   protected proxyServer: KubeAuthProxy
+  protected prometheusService: PrometheusService
 
   protected clientCert: string
   protected clientKey: string
   protected secureApiConnection = true
   protected defaultNamespace: string
   protected proxyPort: number
+  protected metricsPort: number
   protected kubernetesApi: string
+  protected useClusterPrometheus = false // TODO: create a proper preference for this
   protected prometheusPath: string
   protected clusterName: string
 
@@ -145,6 +149,21 @@ export class ContextHandler {
     return serverPort
   }
 
+  protected async resolveMetricsPort(): Promise<number> {
+    if (this.metricsPort) return this.metricsPort
+
+    let serverPort: number = null
+    try {
+      serverPort = await getFreePort(49901, 65535)
+    } catch(error) {
+      logger.error(error)
+      throw(error)
+    }
+    this.metricsPort = serverPort
+
+    return serverPort
+  }
+
   public applyHeaders(req: http.IncomingMessage) {
     req.headers["authorization"] = `Bearer ${this.id}`
   }
@@ -154,6 +173,22 @@ export class ContextHandler {
       await callback(this.cluster.kubeconfigPath())
     } catch(error) {
       throw(error)
+    }
+  }
+
+  public async ensureMetrics() {
+    if (!this.prometheusService) {
+      const prometheusPort = await this.resolveMetricsPort()
+      const prometheusEnv = Object.assign({}, process.env)
+      this.prometheusService = new PrometheusService(this.cluster, prometheusPort, prometheusEnv)
+      await this.prometheusService.run()
+    }
+  }
+
+  public stopMetrics() {
+    if (this.prometheusService) {
+      this.prometheusService.exit()
+      this.prometheusService = null
     }
   }
 

@@ -104,7 +104,7 @@ export class LensBinary {
     if(!isValid) {
       await this.downloadBinary().catch((error) => { logger.error(error) });
       if (this.tarPath) await this.untarBinary()
-      if(this.originalBinaryName != this.binaryName ) await this.renameBinary()
+      if(this.getOriginalBinaryPath() != this.getBinaryPath() ) await this.renameBinary()
       logger.info(`${this.originalBinaryName} has been downloaded to ${this.getBinaryPath()}`)
     }
   }

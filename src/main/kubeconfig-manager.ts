@@ -1,6 +1,6 @@
 import { app } from "electron"
 import * as fs from "fs"
-import { ensureDir, randomFileName} from "./file-helpers"
+import { ensureDir, randomFileName } from "./file-helpers"
 import logger from "./logger"
 
 export class KubeconfigManager {
